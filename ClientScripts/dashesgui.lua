@@ -3,7 +3,7 @@ local RS = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
 local player = Players.LocalPlayer
-local dashEvt = RS.Remotes.DashRemote
+local dashEvt = RS.Remotes.DefenseRemotes.DashRemote
 
 local MAX = 3
 local RESET_T = 2
