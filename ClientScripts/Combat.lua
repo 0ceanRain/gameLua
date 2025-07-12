@@ -7,6 +7,7 @@ local uis = game:GetService("UserInputService")
 local player = game:GetService("Players").LocalPlayer
 local character = player.Character
 --local IsStunnedAttribute = character:GetAttribute("IsStunned")
+local stunRemote = game:GetService("ReplicatedStorage").Remotes.DefenseRemotes.stunnedRemote
 
 -- dash
 local idleAnim = script.Parent:WaitForChild("Humanoid"):LoadAnimation(game:GetService("ReplicatedStorage").Animations.HerosBlades.Idle)
@@ -33,6 +34,16 @@ local EquippedRemote = game:GetService("ReplicatedStorage").Remotes.EquippedRemo
 -- parry
 local ParryRemote = game:GetService("ReplicatedStorage").Remotes.DefenseRemotes.ParryRemote
 local IsParryingAttribute = character:GetAttribute("IsParrying")
+local ParryRemoteFromClient = game:GetService("ReplicatedStorage").Remotes.DefenseRemotes.ParryRemoteFromClient
+
+-- Block
+local blockRemote = game:GetService("ReplicatedStorage").Remotes.DefenseRemotes.BlockRemote
+
+
+
+--local parryAnim = character:FindFirstChild("Humanoid"):LoadAnimation(game:GetService("ReplicatedStorage").Animations.Parry.GotParried)
+--local parrySuccessfullAnim = character:FindFirstChild("Humanoid"):LoadAnimation(game:GetService("ReplicatedStorage").Animations.Parry.GotParried)
+--local GotParriedAnim = character:FindFirstChild("Humanoid"):LoadAnimation(game:GetService("ReplicatedStorage").Animations.Parry.GotParried)
 
 --if player.Backpack:FindFirstChild("Tool") then
 --	print("in players backpack")
@@ -59,20 +70,38 @@ local IsParryingAttribute = character:GetAttribute("IsParrying")
 --if player.Character:FindFirstChildOfClass("Tool") then
 --	print("equipped")
 --end
+local stunned
+local hitStun = false
+local parryStun = false
 
-local stunned = false
+if hitStun then 
+	stunned = true
+elseif parryStun then
+	stunned = true
+else
+	stunned = false
+end
 
 character:GetAttributeChangedSignal("IsStunned"):Connect(function()
 	if character:GetAttribute("IsStunned") == true then
-		stunned = true
-		print("stunned set to true")
-		task.delay(0.5, function()
-			print("reset stun")
-			character:SetAttribute("IsStunned", false)
-		end)
+		hitStun = true
+		if not parryStun then
+			print("stunned set to true")
+			task.delay(0.5, function()
+				print("reset  hit stun")
+				stunRemote:FireServer(2)
+			end)
+		else
+			task.delay(0.3, function()
+				print("reset parry stun")
+				stunRemote:FireServer(2)
+			end)
+		
+		end
+		
 	end
 	if character:GetAttribute("IsStunned") == false then 
-		stunned = false
+		hitStun = false
 		print("Stunned set to false")
 	end
 		
@@ -108,10 +137,10 @@ end)
 
 local Dash = uis.InputBegan:Connect(function(Input, gpe)
 	if gpe then return end
-	if doingAction == true or stunned == true then return end
+	if doingAction or stunned then return end
 	
 	
-	if Input.KeyCode == Enum.KeyCode.Q and doingAction == false and cdQ == false then
+	if Input.KeyCode == Enum.KeyCode.Q and not doingAction and not cdQ then
 		CurrentDash +=1
 		
 		if CurrentDash < 4 then
@@ -154,9 +183,9 @@ local CurrentAttack = 0
 	
 local finshedSwing = false
 local Swings = uis.InputBegan:Connect(function(Input, gpe)
-	if equipped == false or doingAction == true or stunned == true or AttackCD == true then return end
+	if not equipped or doingAction or stunned or AttackCD then return end
 	
-	if Input.UserInputType == Enum.UserInputType.MouseButton1 and doingAction == false and AttackCD == false then
+	if Input.UserInputType == Enum.UserInputType.MouseButton1 and not doingAction and not AttackCD then
 		CurrentAttack +=1
 		
 		if CurrentAttack == 1 then
@@ -164,7 +193,7 @@ local Swings = uis.InputBegan:Connect(function(Input, gpe)
 			doingAction = true
 			AttackAnim:Play()
 			character:SetAttribute("IsSwinging", true)
-			task.delay(0.7, function()
+			task.delay(0.5, function()
 				AttackRemote:FireServer()
 			end)
 				
@@ -179,11 +208,11 @@ local Swings = uis.InputBegan:Connect(function(Input, gpe)
 			AttackAnim:Play()
 			character:SetAttribute("IsSwinging", true)
 			
-			task.delay(0.7, function()
+			task.delay(0.5, function()
 				AttackRemote:FireServer()
 			end)
 
-			task.wait(0.85)
+			task.wait(0.8)
 			character:SetAttribute("IsSwinging", false)
 			AttackCD = false
 			doingAction = false
@@ -192,11 +221,11 @@ local Swings = uis.InputBegan:Connect(function(Input, gpe)
 			doingAction = true
 			AttackAnim:Play()
 			character:SetAttribute("IsSwinging", true)
-			task.delay(0.7, function()
+			task.delay(0.5, function()
 				AttackRemote:FireServer()
 			end)
 
-			task.wait(0.85)
+			task.wait(0.8)
 			character:SetAttribute("IsSwinging", false)
 			AttackCD = false
 			doingAction = false
@@ -206,11 +235,11 @@ local Swings = uis.InputBegan:Connect(function(Input, gpe)
 			AttackAnim:Play()
 			character:SetAttribute("IsSwinging", true)
 			
-			task.delay(0.7, function()
+			task.delay(0.5, function()
 				AttackRemote:FireServer()
 			end)
 
-			task.wait(0.85)
+			task.wait(0.8)
 			character:SetAttribute("IsSwinging", false)
 		
 			doingAction = false
@@ -220,7 +249,7 @@ local Swings = uis.InputBegan:Connect(function(Input, gpe)
 		
 			if finshedSwing == true then
 		
-				task.delay(1.2, function()
+				task.delay(1, function()
 					CurrentAttack = 0
 					finshedSwing = false
 					AttackCD = false
@@ -232,37 +261,83 @@ end)
 --local module = game.ReplicatedStorage.Modules.WeaponScripts.HerosBlade.HerosBladeModule
 
 --require(module)
+local parryDone = false
 local parrySuccessful = false
 local parryCD = false
+local blocking = false
 local Parry = uis.InputBegan:Connect(function(Input, gpe)
-	if doingAction == true or stunned == true or parryCD == true then return end
+	if doingAction or stunned then return end
 	
-	if Input.KeyCode == Enum.KeyCode.F and doingAction == false then
+	if Input.KeyCode == Enum.KeyCode.F and not doingAction and not parryCD then
+		if uis:IsKeyDown(Input.KeyCode) then
+			doingAction = true
+		end
+		parryDone = false
 		parryCD = true
 		doingAction = true
-		print("parry")
-		character:SetAttribute("IsParrying", true)
 		--ParryAnim:Play()
-		ParryRemote:FireServer()
-		local ParryWait = task.delay(1.25, function()
-			character:SetAttribute("IsParrying", false)
-			parryCD = false
-			doingAction = false
-		end)
+		ParryRemoteFromClient:FireServer(1) -- sets true
+		local ParryWait = task.delay(0.75, function()
+			ParryRemoteFromClient:FireServer(2) -- sets false
+			-- something missing here?
+			parryCD = true
+			parryDone = true
+			task.delay(1.5, function()
+				parryCD = false
+			end)
 			
-			if parrySuccessful == true then
-				task.cancel(ParryWait)
+		end)
+		local blockWait = task.delay(0.1, function()
+			if uis:IsKeyDown(Input.KeyCode) and parryDone then
+				blocking = true
+				blockRemote:FireServer(1) -- sets true
 			end
+		end)	
+		if parrySuccessful then
+			task.cancel(ParryWait)
+		end
+	elseif parryCD and Input.KeyCode == Enum.KeyCode.F then -- can block when parry is on cd
+		blocking = true
+		blockRemote:FireServer(1)
 	end
-end)
 
-
-ParryRemote.OnClientEvent:Connect(function()
-	doingAction = false
-	parryCD = false
-	print("parry")
-	parrySuccessful = true
-	character:SetAttribute("IsParrying", false)
-	--ParryAnim:Play()
+	uis.InputEnded:Connect(function(Input, gpe)
+		if Input.KeyCode == Enum.KeyCode.F and parryDone and blocking then
+			
+			doingAction = false
+			blocking = false
+			blockRemote:FireServer(2) -- sets false
+		end
+	end)
+	
 	
 end)
+
+
+ParryRemote.OnClientEvent:Connect(function(amount)
+	if 1 then
+		doingAction = false
+		parryCD = false
+		print("parry")
+		parrySuccessful = true
+		parryDone = true
+		ParryRemoteFromClient:FireServer(3)
+		--character:SetAttribute("IsParrying", false)
+		--parrySuccessfullAnim:Play()
+		task.delay(0.1, function()
+			
+			parrySuccessful = false
+		end)
+	end
+	if 2 then
+		parryStun = true
+		--GotParriedAnim:Play()
+	end
+	
+	
+	
+	
+end)
+
+
+
