@@ -290,7 +290,7 @@ local Parry = uis.InputBegan:Connect(function(Input, gpe)
 		local blockWait = task.delay(0.1, function()
 			if uis:IsKeyDown(Input.KeyCode) and parryDone then
 				blocking = true
-				blockRemote:FireServer(1) -- sets true
+				--blockRemote:FireServer(1) -- sets true
 			end
 		end)	
 		if parrySuccessful then
@@ -306,9 +306,24 @@ local Parry = uis.InputBegan:Connect(function(Input, gpe)
 			
 			doingAction = false
 			blocking = false
-			blockRemote:FireServer(2) -- sets false
+			--blockRemote:FireServer(2) -- sets false
 		end
 	end)
+	
+	if blocking then
+		blockRemote:FireServer(1)
+		
+		
+		
+		
+	elseif not blocking then
+		blockRemote:FireServer(2)
+		
+		
+		
+		
+		
+	end
 	
 	
 end)
