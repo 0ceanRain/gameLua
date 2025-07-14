@@ -6,6 +6,7 @@ local uis = game:GetService("UserInputService")
 -- player
 local player = game:GetService("Players").LocalPlayer
 local character = player.Character
+local hum = character:FindFirstChild("Humanoid")
 --local IsStunnedAttribute = character:GetAttribute("IsStunned")
 local stunRemote = game:GetService("ReplicatedStorage").Remotes.DefenseRemotes.stunnedRemote
 
@@ -36,7 +37,8 @@ local ParryRemote = game:GetService("ReplicatedStorage").Remotes.DefenseRemotes.
 local IsParryingAttribute = character:GetAttribute("IsParrying")
 local ParryRemoteFromClient = game:GetService("ReplicatedStorage").Remotes.DefenseRemotes.ParryRemoteFromClient
 local GotParriedAnim = character:FindFirstChild("Humanoid"):LoadAnimation(game:GetService("ReplicatedStorage").Animations.Parry.GotParried)
-local ParryAnim1 = character:FindFirstChild("Humanoid"):LoadAnimation(game:GetService("ReplicatedStorage").Animations.Parry.Parry1)
+local ParryAnim1 = character:FindFirstChild("Humanoid"):LoadAnimation(game:GetService("ReplicatedStorage").Animations.Parry.Parry1done)
+local parryAnim = character:FindFirstChild("Humanoid"):LoadAnimation(game:GetService("ReplicatedStorage").Animations.Parry.Parry)
 -- Block
 local blockRemote = game:GetService("ReplicatedStorage").Remotes.DefenseRemotes.BlockRemote
 
@@ -78,21 +80,24 @@ local stunned
 local hitStun = false
 local parryStun = false
 
-if hitStun then 
-	stunned = true
-elseif parryStun then
-	stunned = true
-	--task.cancel(m1Attack)
-else
-	stunned = false
-end
+--if hitStun then 
+--	stunned = true
+--elseif parryStun then
+--	stunned = true
+--	--task.cancel(m1Attack)
+--else
+--	stunned = false
+--end
 
 character:GetAttributeChangedSignal("IsStunned"):Connect(function()
 	print("heard")
 	if character:GetAttribute("IsStunned") == true then
+		
 		--hitStun = true
 		if parryStun then
+			hum.WalkSpeed = 9
 			print("stunned set to true")
+			stunned = true
 			task.delay(0.8, function()
 				print("reset parry stun")
 				stunRemote:FireServer(2)
@@ -100,8 +105,11 @@ character:GetAttributeChangedSignal("IsStunned"):Connect(function()
 				parryStun = false
 			end)
 		else
+			hum.WalkSpeed = 7
+			hitStun = true
+			stunned = true
 			task.delay(1.3, function()
-				print("reset parry stun")
+				print("reset hit stun")
 				stunRemote:FireServer(2)
 				stunned = false
 				hitStun = false
@@ -113,6 +121,7 @@ character:GetAttributeChangedSignal("IsStunned"):Connect(function()
 	if character:GetAttribute("IsStunned") == false then 
 		hitStun = false
 		print("Stunned set to false")
+		hum.WalkSpeed = 16
 	end
 		
 end)
@@ -195,7 +204,7 @@ local finshedSwing = false
 local Swings = uis.InputBegan:Connect(function(Input, gpe)
 	if not equipped or doingAction or stunned or AttackCD then return end
 	
-	if Input.UserInputType == Enum.UserInputType.MouseButton1 and not doingAction and not AttackCD then
+	if Input.UserInputType == Enum.UserInputType.MouseButton1 and not doingAction and not AttackCD and not stunned then
 		CurrentAttack +=1
 		
 		if CurrentAttack == 1 then
@@ -280,12 +289,12 @@ local parrySuccessful = false
 uis.InputBegan:Connect(function(input, gpe)
 	if gpe or stunned then return end
 
-	if input.KeyCode == Enum.KeyCode.F and not doingAction and not parryCD then
+	if input.KeyCode == Enum.KeyCode.F and not doingAction and not parryCD and not stunned then
 		isFDown = true
 		parryDone = false
 		parryCD = true
 		doingAction = true
-		ParryAnim1:Play()
+		parryAnim:Play()
 		ParryRemoteFromClient:FireServer(1)
 
 		local parryWait = task.delay(0.5, function()
@@ -346,24 +355,26 @@ ParryRemote.OnClientEvent:Connect(function(amount)
 		parryDone = true
 		ParryRemoteFromClient:FireServer(3)
 		--character:SetAttribute("IsParrying", false)
-		--parrySuccessfullAnim:Play()
-		task.delay(0.1, function()
+		ParryAnim1:Play()
+		task.delay(0.2, function()
 			
 			parrySuccessful = false
 		end)
 	end
 	if 2 then
+		stunRemote:FireServer(1)
+		
 		parryStun = true
 		for i,v in pairs(player.Character.Humanoid:GetPlayingAnimationTracks()) do
 			v:Stop()
 		end
 		GotParriedAnim:Play()
-		stunRemote:FireServer(1)
+		
+		wait(0.2)
+		idleAnim:play()
 	end
 	
 	
 	
 	
 end)
-
-
