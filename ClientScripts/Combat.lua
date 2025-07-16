@@ -7,6 +7,7 @@ local uis = game:GetService("UserInputService")
 local player = game:GetService("Players").LocalPlayer
 local character = player.Character
 local hum = character:FindFirstChild("Humanoid")
+local hrp = character:WaitForChild("HumanoidRootPart")
 --local IsStunnedAttribute = character:GetAttribute("IsStunned")
 local stunRemote = game:GetService("ReplicatedStorage").Remotes.DefenseRemotes.stunnedRemote
 
@@ -21,7 +22,7 @@ local IsDashingAttribute = character:GetAttribute("IsDashing")
 
 
 -- VFX
-local VFXEvent = game.ReplicatedStorage.Remotes .VFXEvent
+local VFXEvent = game.ReplicatedStorage.Remotes.VFXEvent
 
 
 -- Attacks
@@ -134,6 +135,64 @@ end)
 --		character:SetAttribute("IsStunned", false)
 --	end)
 --end
+local debris = game:GetService("Debris")
+local CombatStateModule = require(game:GetService("ReplicatedStorage").Modules.CombatStateModule)
+
+local RunService = game:GetService("RunService")
+local camera = workspace.CurrentCamera
+local DashDuration = 0.3
+local DashSpeed = 100
+local function startDash(duration, speed)
+	
+	local hrp = character.HumanoidRootPart
+	local bv  = Instance.new("BodyVelocity")
+	bv.MaxForce = Vector3.new(100000, 0, 100000)
+	bv.Velocity = Vector3.new(0,0,0)
+	bv.Parent = hrp
+
+	
+	doingAction = true
+	local elapsed = 0
+
+
+	local conn
+	conn = RunService.Heartbeat:Connect(function(dt)
+		elapsed = elapsed + dt
+		if elapsed >= DashDuration then
+			conn:Disconnect()
+			return
+		end
+
+		
+		local look = camera.CFrame.LookVector
+		local dir  = Vector3.new(look.X, 0, look.Z)
+		if dir.Magnitude > 0 then
+			bv.Velocity = dir.Unit * DashSpeed
+		end
+	end)
+
+
+	task.delay(duration, function()
+		bv:Destroy()
+		--doingAction = false
+	end)
+end
+
+	
+
+if CombatStateModule.IsStunned(player) then
+	stunned = true
+	print("IsStunned")
+else
+	stunned = false
+end
+
+if CombatStateModule.IsDoingAction(player) then
+	doingAction = true
+	print("doingAction")
+else
+	doingAction = false
+end
 
 local EquippedHeard = EquippedRemote.OnClientEvent:Connect(function(amount)
 	if amount ~= 3 then
@@ -158,6 +217,7 @@ local Dash = uis.InputBegan:Connect(function(Input, gpe)
 	if gpe then return end
 	if doingAction or stunned then return end
 	
+	-- adjust as needed
 	
 	if Input.KeyCode == Enum.KeyCode.Q and not doingAction and not cdQ then
 		CurrentDash +=1
@@ -165,19 +225,24 @@ local Dash = uis.InputBegan:Connect(function(Input, gpe)
 		if CurrentDash < 4 then
 			
 			doingAction = true
-			character:SetAttribute("IsDashing", true)
 			VFXEvent:FireServer(1) 
 			dashCompleted = false
 			DashRemote:FireServer(1)
 			cdQ = true
-			character.Humanoid.WalkSpeed = 52
-			task.wait(0.3)
+			--character.Humanoid.WalkSpeed = 52
+			
+			startDash(0.3, 100)
+			
+			--debris:AddItem(bodyVel, 0.3)
+			task.wait(DashDuration)
 			
 			
 			dashCompleted = true
 			DashRemote:FireServer(2)
-			character.Humanoid.WalkSpeed = 16
-			character:SetAttribute("IsDashing", false)
+			
+			--character.Humanoid.WalkSpeed = 16
+			
+			
 			wait(0.05)
 			doingAction = false
 			cdQ = false
@@ -356,20 +421,18 @@ ParryRemote.OnClientEvent:Connect(function(amount)
 		ParryRemoteFromClient:FireServer(3)
 		--character:SetAttribute("IsParrying", false)
 		ParryAnim1:Play()
-		task.delay(0.2, function()
+		task.delay(0.1, function()
 			
 			parrySuccessful = false
 		end)
 	end
 	if 2 then
-		stunRemote:FireServer(1)
-		
 		parryStun = true
 		for i,v in pairs(player.Character.Humanoid:GetPlayingAnimationTracks()) do
 			v:Stop()
 		end
 		GotParriedAnim:Play()
-		
+		stunRemote:FireServer(1)
 		wait(0.2)
 		idleAnim:play()
 	end
@@ -377,4 +440,15 @@ ParryRemote.OnClientEvent:Connect(function(amount)
 	
 	
 	
+end)
+
+local SlashAbility = require(game.ReplicatedStorage.Abilities.MediumMagic.DashnSlash)
+uis.InputBegan:Connect(function(I, gpe)
+	if doingAction or stunned or not equipped then return end
+	if I.KeyCode == Enum.KeyCode.E then
+		if SlashAbility:CanActivate(player) then
+			SlashAbility:Activate(player)
+			
+		end
+	end
 end)
