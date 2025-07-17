@@ -99,7 +99,7 @@ character:GetAttributeChangedSignal("IsStunned"):Connect(function()
 			hum.WalkSpeed = 9
 			print("stunned set to true")
 			stunned = true
-			task.delay(0.8, function()
+			task.delay(0.5, function()
 				print("reset parry stun")
 				stunRemote:FireServer(2)
 				stunned = false
@@ -109,7 +109,7 @@ character:GetAttributeChangedSignal("IsStunned"):Connect(function()
 			hum.WalkSpeed = 7
 			hitStun = true
 			stunned = true
-			task.delay(1.3, function()
+			task.delay(0.7, function()
 				print("reset hit stun")
 				stunRemote:FireServer(2)
 				stunned = false
@@ -142,39 +142,28 @@ local RunService = game:GetService("RunService")
 local camera = workspace.CurrentCamera
 local DashDuration = 0.3
 local DashSpeed = 100
-local function startDash(duration, speed)
-	
-	local hrp = character.HumanoidRootPart
+local function startDash(duration, speed, dirOverride)
+	local hrp = script.Parent.HumanoidRootPart
 	local bv  = Instance.new("BodyVelocity")
-	bv.MaxForce = Vector3.new(100000, 0, 100000)
-	bv.Velocity = Vector3.new(0,0,0)
-	bv.Parent = hrp
+	bv.MaxForce = Vector3.new(1e5,0,1e5)
+	bv.Parent   = hrp
 
-	
-	doingAction = true
 	local elapsed = 0
-
-
 	local conn
 	conn = RunService.Heartbeat:Connect(function(dt)
 		elapsed = elapsed + dt
-		if elapsed >= DashDuration then
+		if elapsed >= duration then
 			conn:Disconnect()
 			return
 		end
-
-		
-		local look = camera.CFrame.LookVector
-		local dir  = Vector3.new(look.X, 0, look.Z)
+		local dir = dirOverride or Vector3.new(camera.CFrame.LookVector.X,0,camera.CFrame.LookVector.Z)
 		if dir.Magnitude > 0 then
-			bv.Velocity = dir.Unit * DashSpeed
+			bv.Velocity = dir.Unit * speed
 		end
 	end)
 
-
 	task.delay(duration, function()
 		bv:Destroy()
-		--doingAction = false
 	end)
 end
 
@@ -213,54 +202,54 @@ end)
 --	EquippedHeard:Disconnect()
 --end
 
-local Dash = uis.InputBegan:Connect(function(Input, gpe)
-	if gpe then return end
-	if doingAction or stunned then return end
-	
-	-- adjust as needed
-	
-	if Input.KeyCode == Enum.KeyCode.Q and not doingAction and not cdQ then
-		CurrentDash +=1
-		
-		if CurrentDash < 4 then
-			
-			doingAction = true
-			VFXEvent:FireServer(1) 
-			dashCompleted = false
-			DashRemote:FireServer(1)
-			cdQ = true
-			--character.Humanoid.WalkSpeed = 52
-			
-			startDash(0.3, 100)
-			
-			--debris:AddItem(bodyVel, 0.3)
-			task.wait(DashDuration)
-			
-			
-			dashCompleted = true
-			DashRemote:FireServer(2)
-			
-			--character.Humanoid.WalkSpeed = 16
-			
-			
-			wait(0.05)
-			doingAction = false
-			cdQ = false
-			
-		end	
-		if CurrentDash == 3 then
-			cdQ = true
-			print("maxDashes")
-			task.wait(2)
-			cdQ = false
-			CurrentDash = 0
-		end
+uis.InputBegan:Connect(function(input, gpe)
+	if gpe or doingAction or stunned then return end
+	if input.KeyCode ~= Enum.KeyCode.Q or cdQ then return end
+
+	CurrentDash += 1
+	doingAction = true
+	cdQ = true
+
+	-- decide combo direction
+	local dir
+	if uis:IsKeyDown(Enum.KeyCode.D) then
+		dir = camera.CFrame.RightVector 
+		DashRemote:FireServer(1, "invul")
+	elseif uis:IsKeyDown(Enum.KeyCode.A) then
+		DashRemote:FireServer(1, "invul")
+		dir = -camera.CFrame.RightVector 
+	elseif uis:IsKeyDown(Enum.KeyCode.S) then
+		DashRemote:FireServer(1, "invul")
+		dir = -camera.CFrame.LookVector
+	else
+		DashRemote:FireServer(1)
 	end
 
-	if equipped == false then return end
-	
+	-- fire visuals & remote
+	VFXEvent:FireServer(1)
 
 	
+
+	-- half‑duration if side/back, else full
+	local dur = dir and (DashDuration/2) or DashDuration
+	startDash(dur, DashSpeed, dir)
+
+	task.delay(dur, function()
+		DashRemote:FireServer(2)
+	end)
+
+	-- reset
+	task.delay(DashDuration + 0.05, function()
+		doingAction = false
+		if CurrentDash == 3 then
+			task.delay(2, function()
+				cdQ = false
+				CurrentDash = 0
+			end)
+		else
+			cdQ = false
+		end
+	end)
 end)
 local CurrentAttack = 0
 
@@ -277,7 +266,7 @@ local Swings = uis.InputBegan:Connect(function(Input, gpe)
 			doingAction = true
 			AttackAnim:Play()
 			character:SetAttribute("IsSwinging", true)
-			task.delay(0.5, function()
+			task.delay(0.45, function()
 				AttackRemote:FireServer()
 			end)
 				
@@ -292,7 +281,7 @@ local Swings = uis.InputBegan:Connect(function(Input, gpe)
 			AttackAnim:Play()
 			character:SetAttribute("IsSwinging", true)
 			
-			task.delay(0.5, function()
+			task.delay(0.45, function()
 				AttackRemote:FireServer()
 			end)
 
@@ -305,7 +294,7 @@ local Swings = uis.InputBegan:Connect(function(Input, gpe)
 			doingAction = true
 			AttackAnim:Play()
 			character:SetAttribute("IsSwinging", true)
-			task.delay(0.5, function()
+			task.delay(0.45, function()
 				AttackRemote:FireServer()
 			end)
 
@@ -319,7 +308,7 @@ local Swings = uis.InputBegan:Connect(function(Input, gpe)
 			AttackAnim:Play()
 			character:SetAttribute("IsSwinging", true)
 			
-			task.delay(0.5, function()
+			task.delay(0.45, function()
 				AttackRemote:FireServer()
 			end)
 
@@ -361,7 +350,7 @@ uis.InputBegan:Connect(function(input, gpe)
 		doingAction = true
 		parryAnim:Play()
 		ParryRemoteFromClient:FireServer(1)
-
+		
 		local parryWait = task.delay(0.5, function()
 			ParryRemoteFromClient:FireServer(2)
 			doingAction = false
@@ -419,6 +408,7 @@ ParryRemote.OnClientEvent:Connect(function(amount)
 		parrySuccessful = true
 		parryDone = true
 		ParryRemoteFromClient:FireServer(3)
+		AttackCD = false
 		--character:SetAttribute("IsParrying", false)
 		ParryAnim1:Play()
 		task.delay(0.1, function()
@@ -431,9 +421,13 @@ ParryRemote.OnClientEvent:Connect(function(amount)
 		for i,v in pairs(player.Character.Humanoid:GetPlayingAnimationTracks()) do
 			v:Stop()
 		end
+		AttackCD = true
+		task.delay(0.2, function()
+			AttackCD = false
+		end)
 		GotParriedAnim:Play()
 		stunRemote:FireServer(1)
-		wait(0.2)
+		task.wait(0.2)
 		idleAnim:play()
 	end
 	
