@@ -8,9 +8,10 @@ vfxReplicate.OnClientEvent:Connect(function(player, amount)
 	
 	if amount == 1 then
 		attach = amount == 1 and vfxPart:FindFirstChild("Dash")
-	else if amount == 2 then
-			attach = amount == 2 and vfxPart:FindFirstChild("Slash")
-		end
+	elseif amount == 2 then
+		attach = amount == 2 and vfxPart:FindFirstChild("Slash")
+	elseif amount == 3 then
+		attach = amount == 3 and vfxPart:FindFirstChild("Teleport")
 	end 
 	print(attach)
 	if amount then
