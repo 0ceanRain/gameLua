@@ -28,9 +28,11 @@ local VFXEvent = game.ReplicatedStorage.Remotes.VFXEvent
 -- Attacks
 local AttackRemote = game:GetService("ReplicatedStorage").Remotes.AttackRemotes.HerosSwordSwing
 local AttackAnim = character:FindFirstChild("Humanoid"):LoadAnimation(game:GetService("ReplicatedStorage").Animations.HerosBlades.Attacks.Swing1)
+local AttackAnim2 = character:FindFirstChild("Humanoid"):LoadAnimation(game:GetService("ReplicatedStorage").Animations.HerosBlades.Attacks.Swing2)
 local AttackCD = false
 local IsSwingingAttribute = character:GetAttribute("IsSwinging")
 local EquippedRemote = game:GetService("ReplicatedStorage").Remotes.EquippedRemote
+
 
 
 -- parry
@@ -99,7 +101,7 @@ character:GetAttributeChangedSignal("IsStunned"):Connect(function()
 			hum.WalkSpeed = 9
 			print("stunned set to true")
 			stunned = true
-			task.delay(0.5, function()
+			task.delay(0.64, function()
 				print("reset parry stun")
 				stunRemote:FireServer(2)
 				stunned = false
@@ -121,6 +123,7 @@ character:GetAttributeChangedSignal("IsStunned"):Connect(function()
 	end
 	if character:GetAttribute("IsStunned") == false then 
 		hitStun = false
+		parryStun = false
 		print("Stunned set to false")
 		hum.WalkSpeed = 16
 	end
@@ -278,7 +281,7 @@ local Swings = uis.InputBegan:Connect(function(Input, gpe)
 		elseif CurrentAttack == 2 then
 			AttackCD = true
 			doingAction = true
-			AttackAnim:Play()
+			AttackAnim2:Play()
 			character:SetAttribute("IsSwinging", true)
 			
 			task.delay(0.45, function()
@@ -305,7 +308,7 @@ local Swings = uis.InputBegan:Connect(function(Input, gpe)
 		elseif CurrentAttack == 4 then
 			AttackCD = true
 			doingAction = true
-			AttackAnim:Play()
+			AttackAnim2:Play()
 			character:SetAttribute("IsSwinging", true)
 			
 			task.delay(0.45, function()
@@ -341,9 +344,9 @@ local blocking = false
 local blockingDone = false
 local parrySuccessful = false
 uis.InputBegan:Connect(function(input, gpe)
-	if gpe or stunned then return end
+	if gpe then return end
 
-	if input.KeyCode == Enum.KeyCode.F and not doingAction and not parryCD and not stunned then
+	if input.KeyCode == Enum.KeyCode.F and not doingAction and not parryCD then
 		isFDown = true
 		parryDone = false
 		parryCD = true
@@ -355,22 +358,21 @@ uis.InputBegan:Connect(function(input, gpe)
 			ParryRemoteFromClient:FireServer(2)
 			doingAction = false
 			parryDone = true
-		task.delay(0.1, function()
-			if isFDown then
-				blocking = true
-				doingAction = true
-				blockingDone = false
+			task.delay(0.1, function()
+				if isFDown then
+					blocking = true
+					doingAction = true
+					blockingDone = false
+				end	
 				--blockRemote:FireServer(1)
 				--blockAnim:Play()
 				if blocking then
 					blockAnim:Play()
 					blockRemote:FireServer(1)
 					doingAction = true
-				
 				end
-			end
-
-		end)
+			end)	
+		
 			
 			task.delay(1.5, function()
 				parryCD = false
@@ -380,6 +382,7 @@ uis.InputBegan:Connect(function(input, gpe)
 		
 		if parrySuccessful then
 			task.cancel(parryWait)
+			print("task canceld")
 		end
 		
 	end
@@ -401,8 +404,9 @@ end)
 
 
 ParryRemote.OnClientEvent:Connect(function(amount)
-	if 1 then
+	if amount == 1 then
 		doingAction = false
+
 		parryCD = false
 		print("parry")
 		parrySuccessful = true
@@ -411,20 +415,19 @@ ParryRemote.OnClientEvent:Connect(function(amount)
 		AttackCD = false
 		--character:SetAttribute("IsParrying", false)
 		ParryAnim1:Play()
-		task.delay(0.1, function()
+		stunRemote:FireServer(2)
+		task.delay(0.2, function()
 			
 			parrySuccessful = false
 		end)
 	end
-	if 2 then
+	if amount == 2 then
 		parryStun = true
+		
 		for i,v in pairs(player.Character.Humanoid:GetPlayingAnimationTracks()) do
 			v:Stop()
 		end
 		AttackCD = true
-		task.delay(0.2, function()
-			AttackCD = false
-		end)
 		GotParriedAnim:Play()
 		stunRemote:FireServer(1)
 		task.wait(0.2)
@@ -443,6 +446,18 @@ uis.InputBegan:Connect(function(I, gpe)
 		if SlashAbility:CanActivate(player) then
 			SlashAbility:Activate(player)
 			
+		end
+	end
+end)
+
+
+local TeleportAbility = require(game.ReplicatedStorage.Abilities.MediumMagic.TeleportAbility)
+uis.InputBegan:Connect(function(I, gpe)
+	if doingAction or stunned or not equipped then return end
+	if I.KeyCode == Enum.KeyCode.C then
+		if TeleportAbility:CanActivate(player) then
+			TeleportAbility:Activate(player)
+
 		end
 	end
 end)
