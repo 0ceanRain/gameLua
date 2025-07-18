@@ -8,23 +8,41 @@ local isPlayer
 local isNpc
 local ParryRemoteFromClient = game:GetService("ReplicatedStorage").Remotes.DefenseRemotes.ParryRemoteFromClient
 local blockRemote = game:GetService('ReplicatedStorage').Remotes.DefenseRemotes.BlockRemote
-attackRemote.OnServerEvent:Connect(function(player)
-	
-	local char = player.Character
-	if not char then return end
-	local attackRemote = game:GetService("ReplicatedStorage").Remotes.AttackRemotes.HerosSwordSwing
-local debris = game:GetService("Debris")
-local StaterSwordHitbox = game:GetService("ReplicatedStorage").Hitboxes.MediumHitboxs.StarterSwordHitbox
-local ParryRemote = game:GetService("ReplicatedStorage").Remotes.DefenseRemotes.ParryRemote
-local players = game:GetService("Players")
-local trail = game:GetService("ReplicatedStorage").VFX:FindFirstChild("HerosSwordTrail")
-local isPlayer
-local isNpc
-local ParryRemoteFromClient = game:GetService("ReplicatedStorage").Remotes.DefenseRemotes.ParryRemoteFromClient
-local blockRemote = game:GetService('ReplicatedStorage').Remotes.DefenseRemotes.BlockRemote
 local MagicRemote = game:GetService("ReplicatedStorage").Remotes.AttackRemotes.Magic.UseAbility
 local box
 local TeleportAbility = require(game.ReplicatedStorage.Abilities.MediumMagic.TeleportAbility)
+local swordimapct = game.ReplicatedStorage.SFX["Sword Hit (Impact)"]
+local slash = game.ReplicatedStorage.SFX["sword slash"]
+local parry = game.ReplicatedStorage.SFX.Parry
+local parry2 = game.ReplicatedStorage.SFX["Sekiro Parry"]
+local SlashSound = {swordimapct, slash}
+local blockSound = game.ReplicatedStorage.SFX["Weapon Block Blade"]
+local ParrySounds = {parry, parry2}
+local swing1 = game.ReplicatedStorage.SFX.sword_swing1
+local swing2 = game.ReplicatedStorage.SFX.sword_swing2
+local function playSlash()
+
+	local idx = math.random(1, #SlashSound)
+	local chosenSound = SlashSound[idx]
+	chosenSound:Play()
+end
+
+local function playParry()
+
+	local idx = math.random(1, #ParrySounds)
+	local chosenSound = ParrySounds[idx]
+	chosenSound:Play()
+end
+
+local SwingSounds = {swing1, swing2}
+
+local function playSwing()
+
+	local idx = math.random(1, #SwingSounds)
+	local chosenSound = SwingSounds[idx]
+	chosenSound:Play()
+end
+
 attackRemote.OnServerEvent:Connect(function(player, amount)
 	local player = player
 	local char = player.Character
@@ -48,8 +66,9 @@ attackRemote.OnServerEvent:Connect(function(player, amount)
 	box.Parent = workspace
 	Instance.new("WeldConstraint", box).Part0 = hrp
 	box.WeldConstraint.Part1 = box
-			
 	
+	
+	playSwing()
 	local hitOnce = {}
 	box.Touched:Connect(function(hitPart)
 		local victim = hitPart:FindFirstAncestorOfClass("Model")
@@ -83,7 +102,30 @@ attackRemote.OnServerEvent:Connect(function(player, amount)
 		if isNpc then
 			if victim:GetAttribute("IsParrying") == true then
 				ParryRemote:FireClient(player, 2)
+				playParry()
+			elseif victim:GetAttribute("IsDashing") == true then
+				print("dodged")
+
+			elseif victim:GetAttribute("IsBlocking") == true then
+				print("blocked")
+				blockSound:play()
+			else
+				playSlash()
+				if amount == 2 then
+					
+
+					victimHum:TakeDamage(20)
+				else
+					
+
+					victimHum:TakeDamage(10)
+				end
+
+		
+				
+				
 			end
+		
 		end
 			
 		if isPlayer == true then
@@ -91,17 +133,23 @@ attackRemote.OnServerEvent:Connect(function(player, amount)
 				ParryRemote:FireClient(victimPlayer, 1)	
 				ParryRemote:FireClient(player, 2)
 				print("server checked parry")
+				playParry()
 					
 			elseif victim:GetAttribute("IsDashing") == true then
 				print("dodged")
 				
 			elseif victim:GetAttribute("IsBlocking") == true then
 				print("blocked")
-				
+				blockSound:play()
 			else
+				playSlash()
 				if amount == 2 then
-					victimHum:TakeDamage(20)
+				
+					
+					victimHum:TakeDamage(10)
 				else
+				
+					
 					victimHum:TakeDamage(10)
 				end
 				
@@ -341,6 +389,7 @@ TeleportRemote.OnServerEvent:Connect(function(player, action, targetPlayer)
 				print("Teleport attack parried")
 				ParryRemote:FireClient(victimPlayer, 1)
 				ParryRemote:FireClient(player, 2)
+				playParry()
 				
 
 			elseif victim:GetAttribute("IsDashing") then
@@ -348,11 +397,11 @@ TeleportRemote.OnServerEvent:Connect(function(player, action, targetPlayer)
 				
 
 			else
-			
+				playSlash()
 				victimHum:TakeDamage(TeleportDamage)
 				victim:SetAttribute("IsStunned", true)
-				TeleportAbility:OnTeleportSuccess(player, targetPlayer)
-			
+				TeleportAbility:OnTeleportSuccess(player)
+				
 			end
 		end)
 
@@ -364,98 +413,5 @@ TeleportRemote.OnServerEvent:Connect(function(player, action, targetPlayer)
 		
 
 
-	end
-end)
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-
-	local box = StaterSwordHitbox:Clone()
-	box.CFrame = hrp.CFrame * CFrame.new(0,0,-5)
-	box.Parent = workspace
-	Instance.new("WeldConstraint", box).Part0 = hrp
-	box.WeldConstraint.Part1 = box
-			
-	
-	local hitOnce = {}
-	box.Touched:Connect(function(hitPart)
-		local victim = hitPart:FindFirstAncestorOfClass("Model")
-		if not victim or victim == char or hitOnce[victim] then return end
-		hitOnce[victim] = true
-
-		local victimHum = victim:FindFirstChildOfClass("Humanoid")
-		if not victimHum then return end
-		--local hitAnimTrack = victimHum:LoadAnimation(HitAnim)
-
-		--game.Debris:AddItem(hitAnimTrack, 0.2)
-
-
-
-
-		local victimPlayer = players:GetPlayerFromCharacter(victim)
-			
-		if not victimPlayer then
-			print("npc")
-			isNpc = true
-			isPlayer = false
-		else
-			isPlayer = true
-			print("player")
-		end
-		
-		--if victimPlayer and stunned[victimPlayer] and tick() < stunned[victimPlayer] then
-		--	box:Destroy()
-		--	return
-		--end
-			
-		if isPlayer == true then
-			if victim:GetAttribute("IsParrying") == true then
-				ParryRemote:FireClient(victimPlayer, 1)
-				ParryRemote:FireClient(player, 2)
-				print("server checked parry")
-					
-			elseif victim:GetAttribute("IsDashing") == true then
-				print("dodged")
-				
-			elseif victim:GetAttribute("IsBlocking") == true then
-				print("blocked")
-				
-			else
-				victimHum:TakeDamage(10)
-				
-				victim:SetAttribute("IsStunned", true)
-				
-			end
-			
-		end
-			
-			
-
-		
-		
-	end)
-
-	debris:AddItem(box, 0.3)
-	
-	
-end)
-
-ParryRemoteFromClient.OnServerEvent:Connect(function(player, amount)
-	local character = player.Character
-	if amount == 1 then
-		character:SetAttribute("IsParrying", true)
-		
-	elseif amount == 2 then
-		character:SetAttribute("IsParrying", false)
-	elseif amount == 3 then
-		character:SetAttribute("IsParrying", false)
-	end
-	
-end)
-
-blockRemote.OnServerEvent:Connect(function(player, amount)
-	if amount == 1 then
-		player.Character:SetAttribute("IsBlocking", true)
-	elseif amount == 2 then
-		player.Character:SetAttribute("IsBlocking", false)
 	end
 end)
