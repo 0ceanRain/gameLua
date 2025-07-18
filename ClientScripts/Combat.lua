@@ -427,7 +427,7 @@ ParryRemote.OnClientEvent:Connect(function(amount)
 		for i,v in pairs(player.Character.Humanoid:GetPlayingAnimationTracks()) do
 			v:Stop()
 		end
-		AttackCD = true
+		
 		GotParriedAnim:Play()
 		stunRemote:FireServer(1)
 		task.wait(0.2)
@@ -457,7 +457,7 @@ uis.InputBegan:Connect(function(I, gpe)
 	if I.KeyCode == Enum.KeyCode.C then
 		if TeleportAbility:CanActivate(player) then
 			TeleportAbility:Activate(player)
-
+			
 		end
 	end
 end)
