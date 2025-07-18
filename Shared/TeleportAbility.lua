@@ -77,9 +77,9 @@ local function findNearestEnemyToCursor(player)
 end
 
 function TeleportAbility:CanActivate(player)
-	if CombatStateModule.IsStunned(player) or CombatStateModule.IsDoingAction(player) or not CanActivate then 
+	if CombatStateModule.IsStunned(player) or CombatStateModule.IsDoingAction(player) then 
 		return false 
-	elseif CanActivate then
+	else
 		return true
 	end
 end
@@ -91,7 +91,7 @@ function TeleportAbility:Activate(player)
 	local hum = character:FindFirstChildOfClass("Humanoid")
 	if not hrp or not hum then return end
 
-	self._cooldowns[player] = tick()
+	--self._cooldowns[player] = tick()
 	CanActivate = false
 
 	
@@ -142,7 +142,7 @@ function TeleportAbility:Activate(player)
 		end
 	end)
 
-
+	CanActivate = true
 	task.delay(3, function()
 		print("cool down off")
 		CanActivate = true
@@ -159,7 +159,7 @@ function TeleportAbility:OnTeleportSuccess(player, targetPlayer)
 	task.delay(0.1, function()
 		doingAction:FireServer(2)
 	end)
-
+	
 
 end
 
