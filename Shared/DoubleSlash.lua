@@ -20,7 +20,7 @@ function DoubleSlashModule:CanActivate(player)
 	end
 end
 local Swing1Finshed = false
-local Swing2Finshed = false
+
 
 -- ok
 function DoubleSlashModule:Activate(player)

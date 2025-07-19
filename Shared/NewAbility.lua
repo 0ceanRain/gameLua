@@ -10,6 +10,13 @@ local CanActivate = true
 
 local attackRemote = game.ReplicatedStorage.Remotes.attackRemote
 
+local function attack()
+    task.delay(self.windup, function()
+        attackRemote:FireServer()
+    end)
+end
+
+
 function NewAbility:CanActivate(player)
     if CombatStateModule.IsStunned(player) or CombatStateModule.IsDoingAction(player) or not CanActivate then 
 		return false 
@@ -20,7 +27,7 @@ end
 
 
 function NewAbility:Activate(player)
-    
+   attack()
 end
 
 
