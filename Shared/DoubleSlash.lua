@@ -4,6 +4,7 @@ local DoubleSlashModule = {
 DoubleSlashModule.cooldown = 8
 DoubleSlashModule.windup1 = 0.5
 DoubleSlashModule.windup2 = 0.8
+DoubleSlashModule.Name = "DoubleSlash"
 
 local CombatStateModule = require(game:GetService("RobloxReplicatedStorage").Modules.CombatStateModule)
 
