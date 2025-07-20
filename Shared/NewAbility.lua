@@ -1,7 +1,7 @@
 local NewAbility = {}
 NewAbility.cooldown = 7
 NewAbility.windup = 0.55
-NewAbility.Name = "_"
+NewAbility.Name = "NewAbility"
 
 
 local CombatStateModule = require(game:GetService("RobloxReplicatedStorage").Modules.CombatStateModule)
@@ -10,9 +10,19 @@ local CanActivate = true
 
 local attackRemote = game.ReplicatedStorage.Remotes.attackRemote
 
-local function attack()
+local player = game.Players.LocalPlayer
+
+
+
+function NewAbility:CheckMouse()
     task.delay(self.windup, function()
-        attackRemote:FireServer()
+        local mousePos = player:GetMouse()
+        local target = mousePos.Target
+        if target and target.Parent:FindFirstChild("Humanoid") then
+            return true
+        else
+            return false
+        end
     end)
 end
 
@@ -27,7 +37,15 @@ end
 
 
 function NewAbility:Activate(player)
-   attack()
+    if NewAbility:CheckMouse() then
+        attackRemote:FireServer()
+        task.delay(self.windup, function()
+            
+        end)
+    else
+        return false
+    end
+
 end
 
 
